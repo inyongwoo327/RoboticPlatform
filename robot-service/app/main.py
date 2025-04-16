@@ -5,6 +5,7 @@ import logging
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import PlainTextResponse
 import uvicorn
+from models import Robot, RobotUpdate  # Import from models.py
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -15,15 +16,6 @@ robots_db = []
 
 robot_added_counter = Counter("robots_added_total", "Total robots added")
 request_duration = Histogram("request_duration_seconds", "Request duration in seconds", ["endpoint"])
-
-class Robot(BaseModel):
-    id: str
-    name: str
-    status: str
-
-class RobotUpdate(BaseModel):
-    name: str | None = None
-    status: str | None = None
 
 @app.get("/robots", response_model=List[Robot])
 async def get_robots():
@@ -61,4 +53,4 @@ async def metrics():
     return PlainTextResponse(generate_latest(), content_type=CONTENT_TYPE_LATEST)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8080)

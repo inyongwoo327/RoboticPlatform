@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class Robot(BaseModel):
     id: str
@@ -6,5 +7,5 @@ class Robot(BaseModel):
     status: str
 
 class RobotUpdate(BaseModel):
-    name: str | None = None
-    status: str | None = None
+    name: Optional[str] = None
+    status: Optional[str] = None
