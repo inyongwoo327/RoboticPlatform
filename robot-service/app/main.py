@@ -5,7 +5,7 @@ import logging
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import PlainTextResponse
 import uvicorn
-from models import Robot, RobotUpdate  # Import from models.py
+from .models import Robot, RobotUpdate
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
