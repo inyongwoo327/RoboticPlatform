@@ -14,23 +14,3 @@ spec:
             name: robot-service
             port:
               number: 80
-  - host: dashboard.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: dashboard
-            port:
-              number: 3000
-  - host: prometheus.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: prometheus
-            port:
-              number: 9090
