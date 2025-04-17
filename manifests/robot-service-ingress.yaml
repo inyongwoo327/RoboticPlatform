@@ -4,7 +4,7 @@ metadata:
   name: robot-service-ingress
 spec:
   rules:
-  - host: robot-service.local
+  - host: robot.local
     http:
       paths:
       - path: /
