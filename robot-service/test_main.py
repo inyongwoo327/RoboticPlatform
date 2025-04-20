@@ -35,3 +35,18 @@ def test_update_robot():
     assert response.status_code == 200
     assert response.json()["status"] == "inactive"
     assert response.json()["name"] == robot["name"]
+
+def test_add_robot_duplicate_id():
+    robot = {"id": "r1", "name": "Robot1", "status": "active"}
+    client.post("/robots", json=robot)
+    
+    duplicate_robot = {"id": "r1", "name": "Another Robot", "status": "inactive"}
+    response = client.post("/robots", json=duplicate_robot)
+    assert response.status_code == 400
+    assert "already exists" in response.json()["detail"]
+
+def test_update_nonexistent_robot():
+    update = {"status": "inactive"}
+    response = client.patch("/robot/nonexistent", json=update)
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"]
