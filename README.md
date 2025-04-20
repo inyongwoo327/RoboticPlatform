@@ -20,7 +20,7 @@ This project implements a robotics platform with the following components:
 
 ## Architecture
 
-The Architecture diagram is in 'Architecture diagram.jpeg' file.
+The Architecture diagram is in 'Architecture_diagram.jpeg' file.
 The platform follows a microservices architecture running in a Minikube Kubernetes cluster:
 
 - **User Interface**: Accessible via domain names configured in /etc/hosts
@@ -98,35 +98,51 @@ Dashboard: http://dashboard.local
 ### Microservices Architecture
 
 Pro: Clean separation of concerns, independent scaling, technology flexibility
+
 Con: Increased complexity, network overhead
+
 Decision: Microservices architecture chosen to demonstrate cloud-native design patterns
 
 ### Mock Logs in Log API
 
 Pro: Demonstrates functionality without complex log aggregation
+
 Con: Not showing real-time logs from actual services
+
 Decision: Mock logs provide a consistent demo experience; code is in place to extend to real logs
+
 Further suggestions: To simplify the implementations of displaying searchable logs, using EFK Stacks would be recommended.
 
 ### Frontend Framework (Vue.js)
 
 Pro: Lightweight, component-based architecture, TypeScript support
+
 Con: Smaller ecosystem compared to React
+
 Decision: Vue.js chosen for its simplicity and performance for this project scale
 
 ### Prometheus for Monitoring
 
 Pro: Industry standard, well-integrated with Kubernetes
+
 Con: Requires additional RBAC configuration
+
 Decision: The standard choice for Kubernetes monitoring, providing solid metrics foundation
 
 ### Future Improvements
 
 Persistence Layer: Add a database (PostgreSQL or MongoDB) for storing robot data
+
 Real Log Aggregation: Implement ELK or similar stack for real log collection
+
 Authentication: Add user authentication and authorization
+
 CI/CD Pipeline: Automate testing and deployment
+
 Helm Charts: Package the application for easier deployment
+
 Resource Limits: Fine-tune resource requests and limits for all pods
+
 Enhanced Metrics: Add business metrics beyond basic technical monitoring
+
 High Availability: Configure services for resilience and redundancy
