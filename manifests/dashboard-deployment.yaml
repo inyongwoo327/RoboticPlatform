@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: dashboard
-        image: dashboard:1.0
+        image: dashboard:latest
         imagePullPolicy: Never
         ports:
         - containerPort: 80

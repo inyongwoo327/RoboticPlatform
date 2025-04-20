@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: robot-service
-        image: robot-service:1.0
+        image: robot-service:latest
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
