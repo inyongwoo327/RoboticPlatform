@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from robot_service.app.main import app
+from app.main import app
 import pytest
 
 client = TestClient(app)
@@ -7,7 +7,7 @@ client = TestClient(app)
 # Please Clear the database before each test!!!
 @pytest.fixture(autouse=True)
 def clear_robots_db():
-    from robot_service.app.main import robots_db
+    from app.main import robots_db
     robots_db.clear()
     yield
 
