@@ -1,4 +1,3 @@
-# dashboard-service.yaml
 apiVersion: v1
 kind: Service
 metadata:

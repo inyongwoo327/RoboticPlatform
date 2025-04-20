@@ -60,3 +60,14 @@ def test_update_robot_name_only():
     assert response.status_code == 200
     assert response.json()["name"] == "Updated Robot Name"
     assert response.json()["status"] == robot["status"]
+
+def test_metrics_endpoint():
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/plain; version=0.0.4; charset=utf-8"
+    
+    robot = {"id": "test-metrics", "name": "Test Metrics", "status": "active"}
+    client.post("/robots", json=robot)
+    
+    response = client.get("/metrics")
+    assert "robots_added_total" in response.text
