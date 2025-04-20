@@ -50,3 +50,13 @@ def test_update_nonexistent_robot():
     response = client.patch("/robot/nonexistent", json=update)
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
+
+def test_update_robot_name_only():
+    robot = {"id": "r3", "name": "Robot3", "status": "active"}
+    client.post("/robots", json=robot)
+    
+    update = {"name": "Updated Robot Name"}
+    response = client.patch(f"/robot/{robot['id']}", json=update)
+    assert response.status_code == 200
+    assert response.json()["name"] == "Updated Robot Name"
+    assert response.json()["status"] == robot["status"]
