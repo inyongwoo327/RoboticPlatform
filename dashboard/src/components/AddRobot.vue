@@ -13,7 +13,7 @@
   
   <script lang="ts">
   import { defineComponent, ref } from 'vue';
-  import { useDashboardStore } from '../stores/dashboard';
+  import { useRobotStore } from '../stores/robotStore'
   
   interface Robot {
     id: string;
@@ -24,7 +24,7 @@
   export default defineComponent({
     name: 'AddRobot',
     setup() {
-      const store = useDashboardStore();
+      const store = useRobotStore();
       const robot = ref<Robot>({ id: '', name: '', status: 'active' });
   
       const addRobot = () => {

@@ -8,12 +8,12 @@
   <script lang="ts">
   import { defineComponent, ref, onMounted, watch } from 'vue';
   import Chart from 'chart.js/auto';
-  import { useDashboardStore } from '../stores/dashboard';
+  import { useRobotStore } from '../stores/robotStore'
   
   export default defineComponent({
     name: 'MetricsView',
     setup() {
-      const store = useDashboardStore();
+      const store = useRobotStore();
       const chartCanvas = ref<HTMLCanvasElement | null>(null);
       let chart: Chart | null = null;
   

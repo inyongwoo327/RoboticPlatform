@@ -3,7 +3,8 @@ from pydantic import BaseModel
 from typing import List
 import logging
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import Response
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from app.models import Robot, RobotUpdate
 
@@ -11,6 +12,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 robots_db = []
 
@@ -49,8 +58,8 @@ async def update_robot(robot_id: str, update: RobotUpdate):
         raise HTTPException(status_code=404, detail="Robot not found")
 
 @app.get("/metrics")
-async def metrics():
-    return PlainTextResponse(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)

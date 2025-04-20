@@ -2,9 +2,9 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
 class LogEntry(BaseModel):
-    log: str
-    stream: str
-    time: str
+    timestamp: str
+    level: str
+    message: str
     kubernetes: Optional[Dict[str, Any]] = None
 
 class LogSearchResult(BaseModel):

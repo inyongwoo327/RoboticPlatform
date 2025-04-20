@@ -14,15 +14,11 @@ spec:
       labels:
         app: log-api
     spec:
+      serviceAccountName: log-api
       containers:
       - name: log-api
         image: log-api:1.0
         imagePullPolicy: Never
-        env:
-        - name: ELASTICSEARCH_HOST
-          value: elasticsearch
-        - name: ELASTICSEARCH_PORT
-          value: "9200"
         ports:
         - containerPort: 8080
         resources:

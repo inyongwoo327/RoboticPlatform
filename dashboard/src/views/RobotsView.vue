@@ -10,13 +10,13 @@
   import { defineComponent } from 'vue';
   import RobotList from '../components/RobotList.vue';
   import AddRobot from '../components/AddRobot.vue';
-  import { useDashboardStore } from '../stores/dashboard';
+  import { useRobotStore } from '../stores/robotStore'
   
   export default defineComponent({
     name: 'RobotsView',
     components: { RobotList, AddRobot },
     setup() {
-      const store = useDashboardStore();
+      const store = useRobotStore();
       store.fetchRobots();
       return { store };
     },
