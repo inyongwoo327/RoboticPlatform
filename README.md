@@ -93,7 +93,7 @@ kubectl get pods
 Open your browser and navigate to:
 Dashboard: http://dashboard.local
 
-## Design Decisions and Tradeoffs
+## Assumptions (Design Decisions) and Tradeoffs
 
 ### Microservices Architecture
 

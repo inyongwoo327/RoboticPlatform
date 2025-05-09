@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
 import logging
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import Gauge, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -40,6 +40,7 @@ async def add_robot(robot: Robot):
             raise HTTPException(status_code=400, detail="Robot ID already exists")
         robots_db.append(robot)
         robot_added_counter.inc()
+        robots_total.labels(status=robot.status).inc()
         logger.info(f"Added robot: {robot.id}")
         return robot
 
