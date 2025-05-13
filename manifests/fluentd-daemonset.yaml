@@ -12,14 +12,17 @@ spec:
         app: fluentd
     spec:
       serviceAccount: fluentd
+      serviceAccountName: fluentd
       containers:
       - name: fluentd
-        image: fluent/fluentd-kubernetes-daemonset:v1.14.6-debian-elasticsearch7-1.1
+        image: fluent/fluentd-kubernetes-daemonset:v1.14-debian-elasticsearch7-1
         env:
           - name: FLUENT_ELASTICSEARCH_HOST
             value: "elasticsearch"
           - name: FLUENT_ELASTICSEARCH_PORT
             value: "9200"
+          - name: FLUENT_ELASTICSEARCH_SCHEME
+            value: "http"
         volumeMounts:
         - name: varlog
           mountPath: /var/log
@@ -27,7 +30,8 @@ spec:
           mountPath: /var/lib/docker/containers
           readOnly: true
         - name: fluentd-config
-          mountPath: /fluentd/etc
+          mountPath: /fluentd/etc/fluent.conf
+          subPath: fluent.conf
       volumes:
       - name: varlog
         hostPath:

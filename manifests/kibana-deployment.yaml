@@ -14,9 +14,19 @@ spec:
     spec:
       containers:
       - name: kibana
-        image: docker.elastic.co/kibana/kibana:7.17.0
+        image: docker.elastic.co/kibana/kibana:8.18.1
         env:
         - name: ELASTICSEARCH_HOSTS
           value: http://elasticsearch:9200
+        - name: ELASTICSEARCH_USERNAME
+          value: kibana_system
+        - name: ELASTICSEARCH_PASSWORD
+          value: changeme
+        - name: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+          value: 7dHLCyXflnE824kWtxHDjcNQfmD2tVxPKsW1alpszK8=
+        - name: XPACK_REPORTING_ENCRYPTIONKEY  
+          value: 88WSWyZhpCmgiR7Sy0zu1EHBhCZ9nASub1eq+6lBdBg=
+        - name: XPACK_SECURITY_ENCRYPTIONKEY
+          value: MQprbcmQ+PHIr91mDN+SDQN3i9BrjVnGVST2Ybh+9hM=
         ports:
         - containerPort: 5601

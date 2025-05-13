@@ -6,25 +6,30 @@ data:
   fluent.conf: |
     <source>
       @type tail
-      path /var/log/containers/*.log
+      path /var/log/containers/robot-service*.log
       pos_file /var/log/fluentd-containers.log.pos
-      tag kubernetes.*
+      tag kubernetes.robot-service
       read_from_head true
       <parse>
         @type json
         time_format %Y-%m-%dT%H:%M:%S.%NZ
       </parse>
     </source>
-    <match kubernetes.**>
+
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id filter_kube_metadata
+    </filter>
+
+    <match kubernetes.robot-service>
       @type elasticsearch
       host elasticsearch
       port 9200
       logstash_format true
-      logstash_prefix k8s
-      <buffer>
-        @type file
-        path /var/log/fluentd/buffers
-        flush_thread_count 2
-        flush_interval 5s
-      </buffer>
+      logstash_prefix k8s-robot-logs
+      logstash_dateformat %Y.%m.%d
+      include_tag_key true
+      type_name access_log
+      tag_key @log_name
+      flush_interval 1s
     </match>
