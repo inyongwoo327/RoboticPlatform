@@ -1,4 +1,4 @@
-// Create a new file: src/stores/logStore.ts
+// src/stores/logStore.ts
 import { defineStore } from 'pinia';
 import axios from 'axios';
 
@@ -6,6 +6,10 @@ interface Log {
   timestamp: string;
   level: string;
   message: string;
+  kubernetes?: {
+    pod_name: string;
+    container_name: string;
+  };
   index?: number;
 }
 
@@ -17,6 +21,7 @@ interface LogFilter {
 export const useLogStore = defineStore('log', {
   state: () => ({
     logs: [] as Log[],
+    filteredLogs: [] as Log[],
     filter: { level: '', timestamp: '' } as LogFilter,
     loading: false,
     error: null as string | null,
@@ -40,12 +45,19 @@ export const useLogStore = defineStore('log', {
             timestamp: log.timestamp || new Date().toISOString(),
             level: log.level || 'info',
             message: log.message || log.log || JSON.stringify(log),
+            kubernetes: log.kubernetes,
             index
           }));
+          
+          // Apply filters to the fetched logs
+          this.applyFilters();
         }
       } catch (error: any) {
         this.error = error.message || 'Failed to fetch logs';
         console.error(this.error);
+        
+        // fallback
+        this.filteredLogs = this.logs;
       } finally {
         this.loading = false;
       }
@@ -53,7 +65,47 @@ export const useLogStore = defineStore('log', {
     
     updateLogFilter(filter: { level: string, timestamp: string }) {
       this.filter = { ...this.filter, ...filter };
-      this.fetchLogs();
+      
+      // Apply filters to already fetched logs
+      this.applyFilters();
+      
+      // Only fetch from backend if needed (optional)
+      // if (filter.level || filter.timestamp) {
+      //   this.fetchLogs();
+      // }
+    },
+    
+    applyFilters() {
+      console.log('Applying filters:', this.filter);
+      console.log('Sample log timestamp:', this.logs.length > 0 ? this.logs[0].timestamp : 'No logs');
+      
+      this.filteredLogs = this.logs.filter(log => {
+        // Level filter - case insensitive partial match
+        const levelMatch = !this.filter.level || 
+                          log.level.toLowerCase().includes(this.filter.level.toLowerCase());
+        
+        // Timestamp filter
+        let timestampMatch = true;
+        if (this.filter.timestamp && this.filter.timestamp.trim() !== '') {
+          const filterText = this.filter.timestamp.trim();
+          
+          timestampMatch = (
+            log.timestamp.includes(filterText) ||                // Direct match
+            log.timestamp.split('T')[0].includes(filterText) ||  // Date part only
+            log.timestamp.split('T')[1].includes(filterText)     // Time part only
+          );
+        }
+        
+        return levelMatch && timestampMatch;
+      });
+      
+      console.log('Filtered logs count:', this.filteredLogs.length);
+    }
+  },
+  
+  getters: {
+    getFilteredLogs(): Log[] {
+      return this.filteredLogs;
     }
   }
 });

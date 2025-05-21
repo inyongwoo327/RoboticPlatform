@@ -8,10 +8,10 @@
     </div>
     
     <ul class="logs-list">
-      <li v-for="(log, index) in store.logs" :key="index" :class="'level-' + log.level">
+      <li v-for="(log, index) in store.filteredLogs" :key="index" :class="'level-' + log.level">
         {{ log.timestamp }} [{{ log.level }}] {{ log.message }}
       </li>
-      <li v-if="store.logs.length === 0" class="no-logs">
+      <li v-if="store.filteredLogs.length === 0" class="no-logs">
         No logs available
       </li>
     </ul>
@@ -32,7 +32,6 @@ export default defineComponent({
       store.updateLogFilter(filter.value);
     };
     
-    // Fetch logs when component is mounted
     store.fetchLogs();
     
     return { store, filter, updateFilter };

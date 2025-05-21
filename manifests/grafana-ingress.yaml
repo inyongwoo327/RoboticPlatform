@@ -1,16 +1,16 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: kibana-ingress
+  name: grafana-ingress
 spec:
   rules:
-  - host: kibana.local
+  - host: grafana.local
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: kibana
+            name: grafana
             port:
-              number: 5601
+              number: 3000
