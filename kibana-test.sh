@@ -8,7 +8,7 @@ curl -s http://localhost:8080/robots
 
 echo -e "\n\nAdding robots..."
 
-for i in {1..10}; do
+for i in {12..13}; do
   # Make the request and save both response body and status code
   response=$(curl -s -w "\n%{http_code}" -X POST -H "Content-Type: application/json" \
     http://localhost:8080/robots \

@@ -4,10 +4,26 @@ metadata:
   name: fluentd-config
 data:
   fluent.conf: |
+    <system>
+      log_level info
+    </system>
+
+    # Emergency fallback for troubleshooting - log all file paths seen
+    <source>
+      @type exec
+      tag file.paths
+      command ls -la /var/log/containers/ | grep -v fluentd
+      run_interval 60s
+      <parse>
+        @type none
+      </parse>
+    </source>
+
+    # Explicitly target robot-service logs
     <source>
       @type tail
-      path /var/log/containers/robot-service*.log
-      pos_file /var/log/fluentd-containers.log.pos
+      path /var/log/containers/*robot-service*.log
+      pos_file /var/log/robot-service.log.pos
       tag kubernetes.robot-service
       read_from_head true
       <parse>
@@ -16,20 +32,83 @@ data:
       </parse>
     </source>
 
+    # Also collect all logs
+    <source>
+      @type tail
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag kubernetes.*
+      read_from_head true
+      <parse>
+        @type json
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+        # Handle parse errors
+        emit_invalid_record_to_error false 
+      </parse>
+    </source>
+
+    # Add Kubernetes metadata
     <filter kubernetes.**>
       @type kubernetes_metadata
       @id filter_kube_metadata
     </filter>
 
+    # Explicit output for robot-service for debugging
     <match kubernetes.robot-service>
+      @type copy
+      <store>
+        @type stdout
+      </store>
+      <store>
+        @type elasticsearch
+        host elasticsearch
+        port 9200
+        user elastic
+        password changeme
+        scheme http
+        logstash_format true
+        logstash_prefix k8s-robot-logs
+        logstash_dateformat %Y.%m.%d
+        include_tag_key true
+        tag_key @log_name
+        flush_interval 1s
+        # Add retry settings
+        retry_limit 5
+        retry_wait 30
+      </store>
+    </match>
+
+    # Send all other logs to Elasticsearch
+    <match kubernetes.** file.**>
       @type elasticsearch
       host elasticsearch
       port 9200
+      user elastic
+      password changeme
+      scheme http
       logstash_format true
-      logstash_prefix k8s-robot-logs
+      logstash_prefix k8s-logs
       logstash_dateformat %Y.%m.%d
       include_tag_key true
-      type_name access_log
+      tag_key @log_name
+      flush_interval 1s
+      # Add retry settings
+      retry_limit 5
+      retry_wait 30
+    </match>
+
+    # Catch-all for any logs we might have missed
+    <match **>
+      @type elasticsearch
+      host elasticsearch
+      port 9200
+      user elastic
+      password changeme
+      scheme http
+      logstash_format true
+      logstash_prefix k8s-other-logs
+      logstash_dateformat %Y.%m.%d
+      include_tag_key true
       tag_key @log_name
       flush_interval 1s
     </match>
