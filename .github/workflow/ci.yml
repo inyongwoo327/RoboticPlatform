@@ -1,0 +1,500 @@
+name: CI Pipeline - RoboticPlatform
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  
+env:
+  PYTHON_VERSION: '3.13'
+  NODE_VERSION: '20'
+
+jobs:
+  # Job 1: Detect Changes
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      python-services: ${{ steps.changes.outputs.python-services }}
+      manifests: ${{ steps.changes.outputs.manifests }}
+      scripts: ${{ steps.changes.outputs.scripts }}
+      tests: ${{ steps.changes.outputs.tests }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Detect file changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            python-services:
+              - 'robot-service/**'
+              - 'log-api/**'
+              - 'requirements-test.txt'
+              - 'pyproject.toml'
+            manifests:
+              - 'manifests/**'
+            scripts:
+              - 'scripts/**'
+            tests:
+              - 'tests/**'
+  # Job 2: Python Services - Code Quality and Security
+  python-code-quality:
+    name: Python Code Quality & Security
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.python-services == 'true' || needs.detect-changes.outputs.tests == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort bandit safety mypy
+          if [ -f robot-service/requirements.txt ]; then pip install -r robot-service/requirements.txt; fi
+          if [ -f log-api/requirements.txt ]; then pip install -r log-api/requirements.txt; fi
+          if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+
+      - name: Code formatting check (Black)
+        run: |
+          black --check --diff robot-service/ log-api/ tests/
+
+      - name: Import sorting check (isort)
+        run: |
+          isort --check-only --diff robot-service/ log-api/ tests/
+
+      - name: Linting (flake8)
+        run: |
+          flake8 robot-service/ log-api/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Type checking (MyPy)
+        run: |
+          mypy robot-service/app/ || echo "Type check completed with warnings"
+          mypy log-api/app/ || echo "Type check completed with warnings"
+
+      - name: Security check (Bandit)
+        run: |
+          bandit -r robot-service/ log-api/ -f json -o bandit-report.json || true
+
+      - name: Dependency vulnerability check (Safety)
+        run: |
+          safety check --json --output safety-report.json || true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: python-security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+  # Job 3: Python Services - Tests
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.python-services == 'true' || needs.detect-changes.outputs.tests == 'true'
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-asyncio httpx pytest-mock
+          if [ -f robot-service/requirements.txt ]; then pip install -r robot-service/requirements.txt; fi
+          if [ -f log-api/requirements.txt ]; then pip install -r log-api/requirements.txt; fi
+          if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+
+      - name: Run unit tests
+        run: |
+          PYTHONPATH=. pytest tests/unit/ -v --cov=robot-service/app --cov=log-api/app --cov-report=xml --cov-report=term-missing
+
+      - name: Run integration tests
+        run: |
+          PYTHONPATH=. pytest tests/integration/ -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: python-unittests
+          name: python-${{ matrix.python-version }}
+  # Job 4: Docker Build and Security Scan
+  docker-build:
+    name: Docker Build & Security Scan
+    runs-on: ubuntu-latest
+    needs: [detect-changes, python-code-quality]
+    if: needs.detect-changes.outputs.python-services == 'true'
+    strategy:
+      matrix:
+        service: [robot-service, log-api]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.service }} image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          tags: ${{ matrix.service }}:test
+          load: true
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ matrix.service }}:test'
+          format: 'sarif'
+          output: '${{ matrix.service }}-trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: '${{ matrix.service }}-trivy-results.sarif'
+  # Job 5: API Integration Tests
+  api-integration-tests:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: needs.detect-changes.outputs.python-services == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build services
+        run: |
+          docker build -t robot-service:test ./robot-service
+          docker build -t log-api:test ./log-api
+          
+          # Create network
+          docker network create test-network
+          
+          # Start robot-service
+          docker run -d --name robot-service-test \
+            --network test-network \
+            -p 8080:8080 \
+            robot-service:test
+          
+          # Start log-api
+          docker run -d --name log-api-test \
+            --network test-network \
+            -p 8081:8080 \
+            log-api:test
+          
+          # Wait for services to be ready
+          sleep 15
+
+      - name: Run comprehensive API tests
+        run: |
+          # Test robot-service endpoints
+          echo "Testing robot-service health..."
+          curl -f http://localhost:8080/robots || exit 1
+          
+          echo "Testing metrics endpoint..."
+          curl -f http://localhost:8080/metrics || exit 1
+          
+          echo "Testing robot creation..."
+          curl -X POST -H "Content-Type: application/json" \
+            -d '{"id":"test-robot","name":"Test Robot","status":"online"}' \
+            http://localhost:8080/robots || exit 1
+          
+          echo "Testing robot retrieval..."
+          curl -f http://localhost:8080/robots | grep "test-robot" || exit 1
+          
+          echo "Testing robot update..."
+          curl -X PATCH -H "Content-Type: application/json" \
+            -d '{"status":"maintenance"}' \
+            http://localhost:8080/robot/test-robot || exit 1
+          
+          # Test log-api endpoints
+          echo "Testing log-api health..."
+          curl -f http://localhost:8081/logs || exit 1
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop robot-service-test log-api-test || true
+          docker rm robot-service-test log-api-test || true
+          docker network rm test-network || true
+  # Job 6: Kubernetes Manifest Validation
+  k8s-validation:
+    name: Kubernetes Manifest Validation
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.manifests == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Install kubeval
+        run: |
+          wget https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf kubeval-linux-amd64.tar.gz
+          sudo cp kubeval /usr/local/bin
+
+      - name: Validate Kubernetes manifests
+        run: |
+          echo "Validating Kubernetes manifests..."
+          find manifests/ -name "*.yaml" -exec kubeval {} \;
+
+      - name: Install kube-score
+        run: |
+          wget https://github.com/zegl/kube-score/releases/download/v1.16.1/kube-score_1.16.1_linux_amd64.tar.gz
+          tar xzf kube-score_1.16.1_linux_amd64.tar.gz
+          sudo mv kube-score /usr/local/bin/
+
+      - name: Run kube-score analysis
+        run: |
+          echo "Running kube-score analysis..."
+          find manifests/ -name "*.yaml" -exec kube-score score {} \; || true
+
+      - name: Validate service connections
+        run: |
+          echo "Validating service configurations..."
+          # Check if all services have corresponding deployments
+          for service in manifests/*-service.yaml; do
+            service_name=$(basename "$service" -service.yaml)
+            if [ ! -f "manifests/${service_name}-deployment.yaml" ]; then
+              echo "Warning: No deployment found for service $service_name"
+            fi
+          done
+  # Job 7: Performance Tests
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: needs.detect-changes.outputs.python-services == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install performance test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install locust
+
+      - name: Start robot-service
+        run: |
+          docker build -t robot-service:perf ./robot-service
+          docker run -d --name robot-service-perf -p 8080:8080 robot-service:perf
+          sleep 10
+
+      - name: Run performance tests with Locust
+        run: |
+          if [ -f tests/performance/test_load.py ]; then
+            locust -f tests/performance/test_load.py --headless --users 10 --spawn-rate 2 -H http://localhost:8080 --run-time 30s
+          fi
+
+      - name: Run Apache Bench tests
+        run: |
+          sudo apt-get update && sudo apt-get install -y apache2-utils
+          echo "Running performance tests..."
+          ab -n 1000 -c 10 http://localhost:8080/robots
+          ab -n 500 -c 5 http://localhost:8080/metrics
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop robot-service-perf || true
+          docker rm robot-service-perf || true
+
+  # Job 8: Security Scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep security scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/python
+            p/typescript
+
+      - name: Run GitLeaks secret scan
+        uses: zricethezav/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job 9: End-to-End Tests
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: needs.detect-changes.outputs.python-services == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: |
+          # Create a minimal docker-compose for E2E testing
+          cat > docker-compose.test.yml << 'EOF'
+          version: '3.8'
+          services:
+            robot-service:
+              build: ./robot-service
+              ports:
+                - "8080:8080"
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:8080/robots"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+            
+            log-api:
+              build: ./log-api
+              ports:
+                - "8081:8080"
+              depends_on:
+                - robot-service
+          EOF
+
+      - name: Start all services
+        run: |
+          docker-compose -f docker-compose.test.yml up -d
+          sleep 30
+
+      - name: Run E2E tests
+        run: |
+          # Test service connectivity
+          curl -f http://localhost:8080/robots
+          curl -f http://localhost:8081/logs
+          curl -f http://localhost:3000
+
+          # Test API workflows
+          robot_id="e2e-test-$(date +%s)"
+          echo "Creating robot with ID: $robot_id"
+          
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"id\":\"$robot_id\",\"name\":\"E2E Test Robot\",\"status\":\"online\"}" \
+            http://localhost:8080/robots
+          
+          echo "Verifying robot creation..."
+          curl -f http://localhost:8080/robots | grep "$robot_id"
+
+      - name: Cleanup E2E environment
+        if: always()
+        run: |
+          docker-compose -f docker-compose.test.yml down
+
+  # Job 11: Generate CI Report
+  ci-report:
+    name: CI Report
+    runs-on: ubuntu-latest
+    needs: [
+      detect-changes,
+      python-code-quality,
+      python-tests,
+      docker-build,
+      api-integration-tests,
+      k8s-validation,
+      performance-tests,
+      security-scan
+    ]
+    if: always()
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        continue-on-error: true
+
+      - name: Generate comprehensive CI summary
+        run: |
+          echo "# 🤖 RoboticPlatform CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Job Status Overview" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Change Detection | ${{ needs.detect-changes.result }} | Detected changes in codebase |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Code Quality | ${{ needs.python-code-quality.result }} | Linting, formatting, security |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Tests | ${{ needs.python-tests.result }} | Unit & integration tests |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker-build.result }} | Container builds & security |" >> $GITHUB_STEP_SUMMARY
+          echo "| API Integration | ${{ needs.api-integration-tests.result }} | Service communication tests |" >> $GITHUB_STEP_SUMMARY
+          echo "| K8s Validation | ${{ needs.k8s-validation.result }} | Manifest validation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Tests | ${{ needs.performance-tests.result }} | Load testing |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result }} | Security analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔍 Change Detection Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Python Services: ${{ needs.detect-changes.outputs.python-services }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Kubernetes Manifests: ${{ needs.detect-changes.outputs.manifests }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests: ${{ needs.detect-changes.outputs.tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ⏱️ Pipeline Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Actor**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Completed at**: $(date)" >> $GITHUB_STEP_SUMMARY
