@@ -1,15 +1,17 @@
+import sys
+import threading
+import time
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
-import sys
-from pathlib import Path
-import time
-import threading
 
 # Add robot-service to path correctly
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "robot-service"))
 
-from app.main import app as robot_app, robots_db
+from app.main import app as robot_app
+from app.main import robots_db
 
 
 class TestRobotServiceIntegration:

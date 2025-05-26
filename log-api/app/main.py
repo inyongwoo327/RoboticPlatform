@@ -1,18 +1,20 @@
+import json
+import logging
+import os
+import re
+import time
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import pytz
+import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-import logging
-import time
-import re
-from datetime import datetime, timedelta
-import pytz
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
-import uvicorn
-import os
-import json
 from kubernetes import client, config
+from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Histogram,
+                               generate_latest)
+from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

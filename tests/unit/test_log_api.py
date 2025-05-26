@@ -1,8 +1,9 @@
 # Fix 1: Update tests/unit/test_log_api.py
-import pytest
-from pydantic import ValidationError
 import sys
 from pathlib import Path
+
+import pytest
+from pydantic import ValidationError
 
 # Add robot-service to path correctly
 project_root = Path(__file__).parent.parent.parent

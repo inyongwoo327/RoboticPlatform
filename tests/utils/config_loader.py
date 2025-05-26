@@ -3,9 +3,10 @@ Utility module for loading test configurations.
 This can be imported by any test file that needs access to configuration.
 """
 
-import yaml
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import yaml
 
 
 def load_test_config() -> Dict[str, Any]:

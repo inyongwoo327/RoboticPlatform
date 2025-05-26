@@ -1,7 +1,8 @@
-from locust import HttpUser, task, between
 import random
-import yaml
 from pathlib import Path
+
+import yaml
+from locust import HttpUser, between, task
 
 
 def load_test_config():

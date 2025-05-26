@@ -1,8 +1,9 @@
-import pytest
-import sys
 import os
-import yaml
+import sys
 from pathlib import Path
+
+import pytest
+import yaml
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -50,8 +51,8 @@ def test_config():
 def robot_service_client():
     """Provide a test client for robot-service"""
     try:
-        from fastapi.testclient import TestClient
         from app.main import app
+        from fastapi.testclient import TestClient
 
         return TestClient(app)
     except ImportError as e:
@@ -62,11 +63,11 @@ def robot_service_client():
 def log_api_client():
     """Provide a test client for log-api"""
     try:
-        from fastapi.testclient import TestClient
-
         # We need to switch context for log-api
         import sys
         from pathlib import Path
+
+        from fastapi.testclient import TestClient
 
         log_api_path = Path(__file__).parent.parent / "log-api"
         sys.path.insert(0, str(log_api_path))

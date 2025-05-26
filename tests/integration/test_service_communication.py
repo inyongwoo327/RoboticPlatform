@@ -1,8 +1,9 @@
 # tests/integration/test_service_communication.py - Using environment configs
-import pytest
-import requests
 import time
 from pathlib import Path
+
+import pytest
+import requests
 import yaml
 
 

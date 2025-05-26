@@ -1,9 +1,10 @@
 # tests/unit/test_robot_service.py - Using the configuration
-import pytest
-from fastapi.testclient import TestClient
 import sys
 from pathlib import Path
+
+import pytest
 import yaml
+from fastapi.testclient import TestClient
 
 # Add robot-service to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "robot-service"))

@@ -1,20 +1,16 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List
+import json
 import logging
-from prometheus_client import (
-    Gauge,
-    Counter,
-    Histogram,
-    generate_latest,
-    CONTENT_TYPE_LATEST,
-)
-from fastapi.responses import Response
-from fastapi.middleware.cors import CORSMiddleware
+import sys
+from typing import List
+
 import uvicorn
 from app.models import Robot, RobotUpdate
-import json
-import sys
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge, Histogram,
+                               generate_latest)
+from pydantic import BaseModel
 
 
 # Create a custom formatter for JSON logs
