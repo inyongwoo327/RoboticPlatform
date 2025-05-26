@@ -1,0 +1,60 @@
+# tests/fixtures/test_configs.yaml
+test_environments:
+  local:
+    robot_service_url: "http://localhost:8080"
+    log_api_url: "http://localhost:8081"
+    dashboard_url: "http://localhost:3000"
+    
+  docker:
+    robot_service_url: "http://robot-service:8080"
+    log_api_url: "http://log-api:8080"
+    dashboard_url: "http://dashboard:80"
+    
+  ci:
+    robot_service_url: "http://localhost:8080"
+    log_api_url: "http://localhost:8081"
+    dashboard_url: "http://localhost:3000"
+
+performance_thresholds:
+  response_time:
+    p95: 500  # 95th percentile response time in ms
+    p99: 1000 # 99th percentile response time in ms
+  
+  throughput:
+    min_rps: 100  # Minimum requests per second
+    
+  availability:
+    uptime: 99.9  # Minimum uptime percentage
+
+security_tests:
+  endpoints_to_test:
+    - "/robots"
+    - "/metrics"
+    - "/robot/{id}"
+  
+  test_payloads:
+    sql_injection:
+      - "'; DROP TABLE robots; --"
+      - "1' OR '1'='1"
+    
+    xss:
+      - "<script>alert('xss')</script>"
+      - "javascript:alert('xss')"
+    
+    oversized_data:
+      robot_name_max_length: 10000
+      robot_id_max_length: 1000
+      payload_size_mb: 10
+
+load_testing:
+  users: 50
+  spawn_rate: 5
+  duration: "60s"
+  
+test_data:
+  sample_robot_count: 10
+  concurrent_operations: 5
+  
+database:
+  test_db_name: "robot_test_db"
+  cleanup_after_tests: true
