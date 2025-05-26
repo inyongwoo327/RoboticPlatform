@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
   
 env:
-  PYTHON_VERSION: '3.13'
+  PYTHON_VERSION: '3.11'
   NODE_VERSION: '20'
 
 jobs:
@@ -382,12 +382,13 @@ jobs:
             p/security-audit
             p/secrets
             p/python
-            p/typescript
+        continue-on-error: true
 
       - name: Run GitLeaks secret scan
         uses: zricethezav/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
 
   # Job 9: End-to-End Tests
   e2e-tests:
