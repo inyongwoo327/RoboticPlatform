@@ -1,0 +1,53 @@
+{
+    "robots": [
+      {
+        "id": "robot-001",
+        "name": "Assembly Robot Alpha",
+        "status": "online"
+      },
+      {
+        "id": "robot-002", 
+        "name": "Welding Robot Beta",
+        "status": "maintenance"
+      },
+      {
+        "id": "robot-003",
+        "name": "Painting Robot Gamma",
+        "status": "offline"
+      },
+      {
+        "id": "robot-004",
+        "name": "Quality Control Robot Delta",
+        "status": "error"
+      },
+      {
+        "id": "robot-005",
+        "name": "Packaging Robot Epsilon",
+        "status": "online"
+      }
+    ],
+    "test_scenarios": {
+      "basic_operations": [
+        {
+          "action": "create",
+          "data": {
+            "id": "test-basic-001",
+            "name": "Basic Test Robot",
+            "status": "online"
+          }
+        },
+        {
+          "action": "update",
+          "robot_id": "test-basic-001",
+          "data": {
+            "status": "maintenance"
+          }
+        }
+      ],
+      "stress_test": {
+        "robot_count": 100,
+        "concurrent_operations": 10,
+        "operation_types": ["create", "read", "update"]
+      }
+    }
+  }
