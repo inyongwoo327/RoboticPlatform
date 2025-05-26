@@ -1,13 +1,15 @@
+# Fix 1: Update tests/unit/test_log_api.py
 import pytest
 from pydantic import ValidationError
 import sys
 from pathlib import Path
 
-# Add both services to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "robot-service"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "log-api"))
+# Add robot-service to path correctly
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root / "robot-service"))
 
-from robot_service.app.models import Robot, RobotUpdate
+# Fixed import - remove robot_service prefix
+from app.models import Robot, RobotUpdate
 
 class TestRobotModel:
     """Test suite for Robot model validation"""
