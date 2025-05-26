@@ -36,7 +36,7 @@ spec:
         - name: xpack.security.transport.ssl.enabled
           value: "false"  # In dev, we'll disable transport layer SSL
         - name: ELASTIC_PASSWORD
-          value: "changeme"  # Setting a default password
+          value: "changeme"  # Default password
         - name: ES_JAVA_OPTS
           value: "-Xms512m -Xmx512m"
         ports:
