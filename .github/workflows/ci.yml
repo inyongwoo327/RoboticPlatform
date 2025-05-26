@@ -68,10 +68,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 black isort bandit safety mypy
-          if [ -f robot-service/requirements.txt ]; then pip install -r robot-service/requirements.txt; fi
-          if [ -f log-api/requirements.txt ]; then pip install -r log-api/requirements.txt; fi
-          if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+          pip3 install pytest pytest-cov pytest-asyncio httpx pytest-mock pyyaml
+          cd robot-service && pip install -r requirements.txt && cd ..
+          cd log-api && pip install -r requirements.txt && cd ..
+          if [ -f requirements-test.txt ]; then pip3 install -r requirements-test.txt; fi
 
       - name: Code formatting check (Black)
         run: |
@@ -99,13 +99,14 @@ jobs:
           safety check --json --output safety-report.json || true
 
       - name: Upload security reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: python-security-reports
           path: |
             bandit-report.json
             safety-report.json
+
   # Job 3: Python Services - Tests
   python-tests:
     name: Python Tests
@@ -150,25 +151,34 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-asyncio httpx pytest-mock
-          if [ -f robot-service/requirements.txt ]; then pip install -r robot-service/requirements.txt; fi
-          if [ -f log-api/requirements.txt ]; then pip install -r log-api/requirements.txt; fi
-          if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+          pip3 install pytest pytest-cov pytest-asyncio httpx pytest-mock pyyaml
+          cd robot-service && pip install -r requirements.txt && cd ..
+          cd log-api && pip install -r requirements.txt && cd ..
+          if [ -f requirements-test.txt ]; then pip3 install -r requirements-test.txt; fi
 
       - name: Run unit tests
         run: |
-          PYTHONPATH=. pytest tests/unit/ -v --cov=robot-service/app --cov=log-api/app --cov-report=xml --cov-report=term-missing
+          export PYTHONPATH="$(pwd)/robot-service:$(pwd)/log-api:$PYTHONPATH"
+          python -m pytest tests/unit/ -v \
+            --cov=robot-service/app \
+            --cov=log-api/app \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --tb=short
 
       - name: Run integration tests
         run: |
-          PYTHONPATH=. pytest tests/integration/ -v
+          export PYTHONPATH="$(pwd)/robot-service:$(pwd)/log-api:$PYTHONPATH"
+          python -m pytest tests/integration/ -v --tb=short
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           flags: python-unittests
           name: python-${{ matrix.python-version }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          
   # Job 4: Docker Build and Security Scan
   docker-build:
     name: Docker Build & Security Scan
