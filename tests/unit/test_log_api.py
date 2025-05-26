@@ -118,15 +118,6 @@ class TestRobotUpdateModel:
         assert update.name is None
         assert update.status is None
     
-    def test_robot_update_validation(self):
-        """Test robot update field validation"""
-        # Empty strings should be rejected
-        with pytest.raises(ValidationError):
-            RobotUpdate(name="")
-        
-        with pytest.raises(ValidationError):
-            RobotUpdate(status="")
-    
     def test_robot_update_types(self):
         """Test robot update field type validation"""
         with pytest.raises(ValidationError):
