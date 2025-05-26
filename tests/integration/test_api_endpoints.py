@@ -5,11 +5,11 @@ from pathlib import Path
 import time
 import threading
 
-# Add services to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "robot-service"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "log-api"))
+# Add robot-service to path correctly
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root / "robot-service"))
 
-from robot_service.app.main import app as robot_app, robots_db
+from app.main import app as robot_app, robots_db
 
 class TestRobotServiceIntegration:
     """Integration tests for Robot Service API endpoints"""
@@ -118,10 +118,10 @@ class TestRobotServiceIntegration:
         assert update_response.status_code == 404
         assert "not found" in update_response.json()["detail"]
         
-        # Test invalid data
-        invalid_robot = {"name": "Invalid Robot"}  # Missing required fields
+        # Test invalid data (empty strings should now fail with your updated models)
+        invalid_robot = {"id": "", "name": "Invalid Robot", "status": "online"}  
         invalid_response = client.post("/robots", json=invalid_robot)
-        assert invalid_response.status_code == 422
+        assert invalid_response.status_code == 422  # Should fail validation
     
     def test_metrics_integration(self, client):
         """Test metrics integration with robot operations"""
@@ -158,15 +158,6 @@ class TestRobotServiceIntegration:
             except Exception as e:
                 results["errors"].append(str(e))
         
-        def update_robot(robot_id):
-            try:
-                update_data = {"status": "maintenance"}
-                response = client.patch(f"/robot/concurrent-{robot_id}", json=update_data)
-                # This might fail if robot doesn't exist yet, which is expected
-                results["created"].append(response.status_code)
-            except Exception as e:
-                results["errors"].append(str(e))
-        
         # Create multiple threads for robot creation
         threads = []
         for i in range(10):
@@ -190,3 +181,25 @@ class TestRobotServiceIntegration:
         assert list_response.status_code == 200
         robots_list = list_response.json()
         assert len(robots_list) == 10
+    
+    def test_validation_with_empty_strings(self, client):
+        """Test that empty string validation works in API"""
+        # Test empty ID
+        invalid_robot_1 = {"id": "", "name": "Test Robot", "status": "online"}
+        response1 = client.post("/robots", json=invalid_robot_1)
+        assert response1.status_code == 422
+        
+        # Test empty name
+        invalid_robot_2 = {"id": "test-1", "name": "", "status": "online"}
+        response2 = client.post("/robots", json=invalid_robot_2)
+        assert response2.status_code == 422
+        
+        # Test empty status
+        invalid_robot_3 = {"id": "test-1", "name": "Test Robot", "status": ""}
+        response3 = client.post("/robots", json=invalid_robot_3)
+        assert response3.status_code == 422
+        
+        # Test whitespace-only strings
+        invalid_robot_4 = {"id": "test-1", "name": "   ", "status": "online"}
+        response4 = client.post("/robots", json=invalid_robot_4)
+        assert response4.status_code == 422
