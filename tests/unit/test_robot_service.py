@@ -5,7 +5,7 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
-# Add robot-service to path
+# Add robot-service to path.
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "robot-service"))
 
 from app.main import app, robots_db
