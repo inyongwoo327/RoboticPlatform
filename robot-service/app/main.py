@@ -12,6 +12,7 @@ from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge, Histogram,
                                generate_latest)
 from pydantic import BaseModel
 
+
 # Create a custom formatter for JSON logs
 class JsonFormatter(logging.Formatter):
     def format(self, record):
