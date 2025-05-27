@@ -11,11 +11,9 @@ def load_test_config():
     with open(config_path, "r") as f:
         return yaml.safe_load(f)
 
-
 # Load configuration
 test_config = load_test_config()
 load_config = test_config.get("load_testing", {})
-
 
 class RobotServiceUser(HttpUser):
     """Locust performance test for Robot Service using config"""

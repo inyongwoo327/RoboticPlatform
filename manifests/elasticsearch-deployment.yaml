@@ -32,9 +32,9 @@ spec:
         - name: xpack.security.enrollment.enabled
           value: "true"
         - name: xpack.security.http.ssl.enabled 
-          value: "false"  # In dev, we'll use HTTP for simplicity
+          value: "false"  # In dev, we'll use HTTP for simplicity.
         - name: xpack.security.transport.ssl.enabled
-          value: "false"  # In dev, we'll disable transport layer SSL
+          value: "false"  # In dev, we'll disable transport layer SSL.
         - name: ELASTIC_PASSWORD
           value: "changeme"  # Default password
         - name: ES_JAVA_OPTS

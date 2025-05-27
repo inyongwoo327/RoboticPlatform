@@ -47,6 +47,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Use list for database
 robots_db = []
 
 robot_added_counter = Counter("robots_added_total", "Total robots added")

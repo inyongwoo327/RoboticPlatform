@@ -50,7 +50,7 @@ except Exception as e:
 
 v1 = client.CoreV1Api() if k8s_available else None
 
-# Fallback mock logs for when Kubernetes API is unavailable
+# Fallback mock logs for when Kubernetes API is unavailable.
 mock_logs = [
     {
         "timestamp": datetime.now().isoformat(),
