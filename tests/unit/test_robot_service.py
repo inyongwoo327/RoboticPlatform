@@ -1,4 +1,3 @@
-# tests/unit/test_robot_service.py - Using the configuration
 import sys
 from pathlib import Path
 
